@@ -8,6 +8,8 @@ var isFirefox = navigator.userAgent.toLowerCase().indexOf('firefox') > -1;
 var colorUI = "#12120f";
 var colorBG = "#efefef";
 
+var current_colormatrix_already_applied = true
+
 var sl_blend;
 var sl_brightness;
 var sl_contrast;
@@ -42,49 +44,50 @@ function setup() {
 	
 	sl_brightness = createSlider(-255, 255);  
 	sl_brightness.value(0);
-	sl_brightness.changed(tweakSlider);
+	// NOTE: input() triggers every time the slider is moved, changed() only do so after the movement has finished.
+	sl_brightness.input(tweakSlider);
 	sl_brightness.class("slider");
 
 	sl_contrast = createSlider(0, 500);
 	sl_contrast.value(100);
-	sl_contrast.changed(tweakSlider);
+	sl_contrast.input(tweakSlider);
 	sl_contrast.class("slider");
 
 	sl_saturation = createSlider(0, 200);
 	sl_saturation.value(100);
-	sl_saturation.changed(tweakSlider);
+	sl_saturation.input(tweakSlider);
 	sl_saturation.class("slider");
 
 	sl_hue = createSlider(0, 360);
 	sl_hue.value(0);
-	sl_hue.changed(tweakSlider);
+	sl_hue.input(tweakSlider);
 	sl_hue.class("slider");
 
 	sl_r = createSlider(-255, 255);
 	sl_r.value(0);
-	sl_r.changed(tweakSlider);
+	sl_r.input(tweakSlider);
 	sl_r.class("slider");
 
 	sl_g = createSlider(-255, 255);
 	sl_g.value(0);
-	sl_g.changed(tweakSlider);
+	sl_g.input(tweakSlider);
 	sl_g.class("slider");
 
 	sl_b = createSlider(-255, 255);
 	sl_b.value(0);
-	sl_b.changed(tweakSlider);
+	sl_b.input(tweakSlider);
 	sl_b.class("slider");
 
 	sl_blend = createSlider(0, 100);
 	sl_blend.value(100);
-	sl_blend.changed(tweakSlider);
+	sl_blend.input(tweakSlider);
 	sl_blend.class("slider");
 
 	copyButton = createButton("COPY");
 	copyButton.mousePressed(copyMatrix);
 	copyButton.class("btn");
 
-	new Clipboard(copyButton.elt);
+	new ClipboardJS(copyButton.elt);
 
 	sl_split = createSlider(0, 100);
 	sl_split.value(100);
@@ -173,7 +176,7 @@ function draw() {
 	link.position(windowWidth-45, windowHeight-25);
 	
 
-	if(imgExist){
+	{
 		x = ceil(windowWidth/2 - img.width/2 + uiSizeW/2);
 		y = ceil(windowHeight/2 - img.height/2 - 25);
 
@@ -187,13 +190,20 @@ function draw() {
 		stroke("255");
 		rect(x, y, img.width, img.height);
 
-		img = imgOriginal.get();
-
 		var split = img.width - ceil(img.width * (1 - sl_split.value()/100));
 
-		applyColorMatrix(img);
+		if (!current_colormatrix_already_applied)
+		{
+			img = imgOriginal.get();
+			applyColorMatrix(img);
+			current_colormatrix_already_applied = true
+		}
+		
+
 		image(imgOriginal, x, y, img.width, img.height);
-		if(split != 0) image(img.get(0,0,split,img.height), x, y, split, img.height);
+		if(split != 0){
+			image(img.get(0,0,split,img.height), x, y, split, img.height);
+		}
 		stroke(255);
 		strokeWeight(1);
 		line(x + split, y , x + split, y + img.height);	
@@ -201,18 +211,7 @@ function draw() {
 		var extraW = 15;
 		sl_split.attribute("style", "width:"+ (img.width + extraW) +"px !important; height: 20px;");
 		sl_split.position(x - extraW/2, y + img.height + 15);		
-	}
-	else{
-		noStroke();
-		textSize(24);
-		textAlign(CENTER);
-		fill(150);
-		text('drag images here!', windowWidth/2 + uiSizeW/2 +1, windowHeight/2 + 1);
-		
-
-	}
-
-	
+	}	
 	
 }
 
@@ -277,7 +276,10 @@ function gotFile(file) {
 }
 function gotFileHack(file){
 	fuckingFirefoxFile = file;
-	if(isFirefox){
+
+	// TODO: this should not be needed...
+	// hack for show droped image. If not, you have to drag it two times to make it show
+	if(true){
 		setTimeout(function() {gotFile(fuckingFirefoxFile) ;}, 100);
 		if(!imgExist) setTimeout(function() {gotFile(fuckingFirefoxFile) ;}, 200);
 	}
@@ -431,6 +433,8 @@ function copyMatrix(){
 function tweakSlider(){
 	copyButton.removeClass('btnClicked');
 	copyButton.html("COPY");
+
+	current_colormatrix_already_applied = false;
 }
 
 function windowResized() {
